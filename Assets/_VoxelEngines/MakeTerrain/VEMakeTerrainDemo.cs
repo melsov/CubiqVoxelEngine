@@ -9,7 +9,7 @@ using UnityEditor;
 
 namespace VE.VoxelGen
 {
-    public class VEMakeTerrain : VEGenerateVolumeBase
+    public class VEMakeTerrainDemo : VEGenerateVolumeBase
     {
 
         float Gradient(float input, float range)
@@ -20,7 +20,7 @@ namespace VE.VoxelGen
         protected override void MakeChunk(ColoredCubesVolumeData data)
         {
 
-            float invRockScale = 1f / noiseScale;
+            
 
             QuantizedColor grass = voxelTypeToColor.getQuantizedColor(VoxelType.Grass);
             QuantizedColor empty = new QuantizedColor(0, 0, 0, 0);
@@ -37,10 +37,16 @@ namespace VE.VoxelGen
                     for (int x = 0; x < size.z; x++)
                     {
 
+                        float invNoiseScale = 1f / noiseScale;
                         // Simplex noise is quite high frequency. We scale the sample position to reduce this.
-                        float sampleX = x * invRockScale;
-                        float sampleY = y * invRockScale;
-                        float sampleZ = z * invRockScale;
+                        float sampleX = x * invNoiseScale;
+                        float sampleY = y * invNoiseScale;
+                        float sampleZ = z * invNoiseScale;
+                        // ranges from -1 to +1
+                        float noise2DValue = SimplexNoise.Noise.Generate(sampleX, sampleZ);
+                        // adjust the range to -.5 to +.5
+                        noise2DValue = noise2DValue * .5f;
+
 
                         float heightOfWorld = size.y;
 
@@ -50,11 +56,7 @@ namespace VE.VoxelGen
                         //
                         float testDepth = heightOfWorld - y;
 
-                        // ranges from -1 to +1
-                        float noise2DValue = SimplexNoise.Noise.Generate(sampleX,  sampleZ);
 
-                        // adjust the range to -.5 to +.5
-                        noise2DValue = noise2DValue * .5f;
 
                         // adjust the range by 'snoise2DScale'
                         //noiseValue = noiseValue * snoise2DScale;
@@ -67,22 +69,11 @@ namespace VE.VoxelGen
                         // Push up testDepth if noiseValue is positive.
                         // These values now have a greater chance of being air (creates valleys).
                         //
-                        testDepth = testDepth + (heightOfWorld * noise2DValue);
+                        testDepth = (testDepth) / heightOfWorld + noise2DValue; // + (heightOfWorld * noise2DValue);
 
-                        float testIsAVoxel = Gradient(testDepth, heightOfWorld); // testDepth, heightOfWorld);
+                        float testIsAVoxel = testDepth; // Gradient(testDepth, heightOfWorld); // testDepth, heightOfWorld);
 
-                        /*
-
-                        float altitude = y / size.y;
-                        altitude = altitude * 4;
-
-                        noiseValue -= altitude;
-                        */
-
-                        //simplexNoiseValue *= 5f;
-                        //simplexNoiseValue = Mathf.Clamp(simplexNoiseValue, -.5f, .5f);
-                        //simplexNoiseValue += .5f;
-                        //simplexNoiseValue *= 255;
+                        
 
                         if (testIsAVoxel > isSolidThreshhold)
                         {
